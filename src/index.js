@@ -22,6 +22,13 @@ const FetchTeacher = teacherId => fetch(`https://api.italki.com/api/v2/teacher/$
     "method": "GET",
 }).then(res => res.json()).then(({data}) => data);
 
+const FetchSimpleSchedule = teachedId => fetch(`https://api.italki.com/api/v2/teacher/${teachedId}/simple_schedule?user_timezone=Europe/Kiev&closest_available_datetime_type=1`, {
+    "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0) Gecko/20100101 Firefox/91.0",
+    },
+    "method": "GET",
+}).then(res => res.json()).then(({data}) => data);
+
 (async () => {
     const topTeacherIds = [...await FetchTeacherIds(1), ...await FetchTeacherIds(2)];
     let teachers = [];
@@ -30,15 +37,28 @@ const FetchTeacher = teacherId => fetch(`https://api.italki.com/api/v2/teacher/$
         teachers.push({
             teacherId,
             name: data.user_info.nickname,
-            minPrice: data.course_info.min_price / 100,
+            trialPrice: parseInt(data.course_info.trial_price / 100),
+            minPrice: parseInt(data.course_info.min_price / 100),
             position: topTeacherIds.indexOf(teacherId) + 1,
-            lessons: data.teacher_statistics.finished_session,
             isPro: data.user_info.is_pro,
+            isNew: data.teacher_info.is_new,
             isOnline: data.user_info.is_online,
+            lessons: data.teacher_info.session_count,
+            students: data.teacher_info.student_count,
             rating: parseFloat(data.teacher_info.overall_rating),
         });
     }), {
-        concurrency: 2,
+        concurrency: 3,
+    })
+
+    await Promise.map(topTeacherIds, teacherId => FetchSimpleSchedule(teacherId).then(data => {
+        teachers[topTeacherIds.indexOf(teacherId)].availabilityHours = data.available_schedule.map(schedule => schedule.reduce(function (a, b) {
+            return a + b;
+        }, 0)).reduce(function (a, b) {
+            return a + b;
+        }, 0);
+    }), {
+        concurrency: 3,
     })
 
     teachers = teachers.sort(function(x, y) {
@@ -62,7 +82,7 @@ const FetchTeacher = teacherId => fetch(`https://api.italki.com/api/v2/teacher/$
     const date = new Date();
     date.setSeconds(0);
     date.setMilliseconds(0);
-    const teachersInsert = db.prepare('INSERT INTO teachers (teacherId, position, lessons, isPro, isOnline, rating, createdAt) VALUES (:teacherId, :position, :lessons, :isPro, :isOnline, :rating, :createdAt)');
+    const teachersInsert = db.prepare('INSERT INTO teachers (teacherId, position, trialPrice, minPrice, lessons, students, rating, availabilityHours, isPro, isNew, isOnline, createdAt) VALUES (:teacherId, :position, :trialPrice, :minPrice, :lessons, :students, :rating, :availabilityHours, :isPro, :isNew, :isOnline, :createdAt)');
     insertMany(teachersInsert, teachers.map(teacher => ({
         ...teacher,
         createdAt: date.toISOString(),
