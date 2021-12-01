@@ -2,7 +2,7 @@ const fetch = require('node-fetch');
 const Promise = require('bluebird');
 const openDb = require('./db');
 
-const FetchTeacherIds = () => fetch("https://api.italki.com/api/v2/teachers", {
+const FetchTeacherIds = (page) => fetch("https://api.italki.com/api/v2/teachers", {
     "headers": {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0) Gecko/20100101 Firefox/91.0",
         "Accept": "application/json, text/plain, */*",
@@ -10,7 +10,7 @@ const FetchTeacherIds = () => fetch("https://api.italki.com/api/v2/teachers", {
         "Content-Type": "application/json;charset=utf-8",
     },
     "referrer": "https://www.italki.com/",
-    "body": "{\"teach_language\":{\"language\":\"ukrainian\"},\"page_size\":30,\"user_timezone\":\"Europe/Kiev\",\"page\":1}",
+    "body": `{\"teach_language\":{\"language\":\"ukrainian\"},\"page_size\":50,\"user_timezone\":\"Europe/Kiev\",\"page\":${page}}`,
     "method": "POST",
     "mode": "cors"
 }).then(res => res.json()).then(({data}) => data.map(dataItem => dataItem.user_info.user_id));
@@ -23,7 +23,7 @@ const FetchTeacher = teacherId => fetch(`https://api.italki.com/api/v2/teacher/$
 }).then(res => res.json()).then(({data}) => data);
 
 (async () => {
-    const topTeacherIds = await FetchTeacherIds(); 
+    const topTeacherIds = [...await FetchTeacherIds(1), ...await FetchTeacherIds(2)];
     let teachers = [];
 
     await Promise.map(topTeacherIds, teacherId => FetchTeacher(teacherId).then(data => {
@@ -38,7 +38,7 @@ const FetchTeacher = teacherId => fetch(`https://api.italki.com/api/v2/teacher/$
             rating: parseFloat(data.teacher_info.overall_rating),
         });
     }), {
-        concurrency: 3,
+        concurrency: 2,
     })
 
     teachers = teachers.sort(function(x, y) {
