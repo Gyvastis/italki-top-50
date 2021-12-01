@@ -35,7 +35,7 @@ const FetchTeacher = teacherId => fetch(`https://api.italki.com/api/v2/teacher/$
             lessons: data.teacher_statistics.finished_session,
             isPro: data.user_info.is_pro,
             isOnline: data.user_info.is_online,
-            rating: data.teacher_info.overall_rating,
+            rating: parseFloat(data.teacher_info.overall_rating),
         });
     }), {
         concurrency: 3,
@@ -62,7 +62,7 @@ const FetchTeacher = teacherId => fetch(`https://api.italki.com/api/v2/teacher/$
     const date = new Date();
     date.setSeconds(0);
     date.setMilliseconds(0);
-    const teachersInsert = db.prepare('INSERT INTO teachers (teacherId, position, lessons, isPro, isOnline, createdAt) VALUES (:teacherId, :position, :lessons, :isPro, :isOnline, :createdAt)');
+    const teachersInsert = db.prepare('INSERT INTO teachers (teacherId, position, lessons, isPro, isOnline, rating, createdAt) VALUES (:teacherId, :position, :lessons, :isPro, :isOnline, :rating, :createdAt)');
     insertMany(teachersInsert, teachers.map(teacher => ({
         ...teacher,
         createdAt: date.toISOString(),
