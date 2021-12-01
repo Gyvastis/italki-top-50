@@ -35,6 +35,7 @@ const FetchTeacher = teacherId => fetch(`https://api.italki.com/api/v2/teacher/$
             lessons: data.teacher_statistics.finished_session,
             isPro: data.user_info.is_pro,
             isOnline: data.user_info.is_online,
+            rating: data.teacher_info.overall_rating,
         });
     }), {
         concurrency: 3,

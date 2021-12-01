@@ -1,3 +1,4 @@
 *.db
 *-lock.json
 node_modules/
+.idea/
