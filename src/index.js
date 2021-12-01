@@ -34,7 +34,7 @@ const FetchSimpleSchedule = teachedId => fetch(`https://api.italki.com/api/v2/te
     let teachers = [];
 
     await Promise.map(topTeacherIds, teacherId => FetchTeacher(teacherId).then(data => {
-        teachers.push({
+        teachers[topTeacherIds.indexOf(teacherId)] = {
             teacherId,
             name: data.user_info.nickname,
             trialPrice: parseInt(data.course_info.trial_price / 100),
@@ -46,7 +46,7 @@ const FetchSimpleSchedule = teachedId => fetch(`https://api.italki.com/api/v2/te
             lessons: data.teacher_info.session_count,
             students: data.teacher_info.student_count,
             rating: parseFloat(data.teacher_info.overall_rating),
-        });
+        };
     }), {
         concurrency: 3,
     })
