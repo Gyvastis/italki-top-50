@@ -29,6 +29,11 @@ const FetchSimpleSchedule = teachedId => fetch(`https://api.italki.com/api/v2/te
     "method": "GET",
 }).then(res => res.json()).then(({data}) => data);
 
+function date_diff_minutes(dateString) {
+    const diff = Math.abs(new Date() - new Date(dateString));
+    return Math.floor((diff/1000)/60);
+}
+
 (async () => {
     const topTeacherIds = [...await FetchTeacherIds(1), ...await FetchTeacherIds(2)];
     let teachers = [];
@@ -42,7 +47,8 @@ const FetchSimpleSchedule = teachedId => fetch(`https://api.italki.com/api/v2/te
             position: topTeacherIds.indexOf(teacherId) + 1,
             isPro: data.user_info.is_pro,
             isNew: data.teacher_info.is_new,
-            isOnline: data.user_info.is_online,
+            isOnline: date_diff_minutes(data.user_info.last_login_time) < 30 ? 1 : 0,
+            instantNow: data.teacher_info.instant_now,
             lessons: data.teacher_info.session_count,
             students: data.teacher_info.student_count,
             rating: parseFloat(data.teacher_info.overall_rating),
@@ -82,7 +88,7 @@ const FetchSimpleSchedule = teachedId => fetch(`https://api.italki.com/api/v2/te
     const date = new Date();
     date.setSeconds(0);
     date.setMilliseconds(0);
-    const teachersInsert = db.prepare('INSERT INTO teachers (teacherId, position, trialPrice, minPrice, lessons, students, rating, availabilityHours, isPro, isNew, isOnline, createdAt) VALUES (:teacherId, :position, :trialPrice, :minPrice, :lessons, :students, :rating, :availabilityHours, :isPro, :isNew, :isOnline, :createdAt)');
+    const teachersInsert = db.prepare('INSERT INTO teachers (teacherId, position, trialPrice, minPrice, instantNow, lessons, students, rating, availabilityHours, isPro, isNew, isOnline, createdAt) VALUES (:teacherId, :position, :trialPrice, :minPrice, :instantNow, :lessons, :students, :rating, :availabilityHours, :isPro, :isNew, :isOnline, :createdAt)');
     insertMany(teachersInsert, teachers.map(teacher => ({
         ...teacher,
         createdAt: date.toISOString(),
